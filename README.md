@@ -2,6 +2,19 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/allenvox/fleet-app)<br><br>
 A Swift-based system to manage a fleet of vehicles and simulate cargo transportation across various distances. The system supports different types of cargo (e.g., fragile, perishable, bulk) and ensures that each vehicle can carry specific types of cargo based on its configuration. It also simulates fuel consumption and ensures that vehicles can complete the assigned route before running out of fuel.
 
+## Table of Contents
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Usage](#usage)
+  - [Creating Vehicles and Trucks](#creating-vehicles-and-trucks)
+  - [Creating and Loading Cargo](#creating-and-loading-cargo)
+  - [Simulating Cargo Distribution and Travel](#simulating-cargo-distribution-and-travel)
+- [Fleet Class](#fleet-class)
+- [Vehicle and Truck Classes](#vehicle-and-truck-classes)
+- [Cargo Class](#cargo-class)
+- [CargoType Enum](#cargotype-enum)
+- [License](#license)
+
 ## Features
 - **Vehicle Management**: Manage a fleet of different types of vehicles (trucks, vans, etc.) with various load capacities.
 - **Cargo Handling**: Support for loading and unloading different types of cargo, including fragile, perishable, and bulk.
