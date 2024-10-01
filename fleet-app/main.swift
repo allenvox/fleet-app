@@ -51,7 +51,6 @@ class Vehicle {
 
     func unloadCargo() {
         self.currentLoad = 0
-        print("Cargo unloaded from '\(make) \(model)'")
     }
     
     func canGo(path: Int) -> Bool {
@@ -170,6 +169,9 @@ class Fleet {
         }
         
         print("Cargo can be carried on \(path) km route")
+        for vehicle in fleet.vehicles {
+            vehicle.unloadCargo()
+        }
         return true
     }
 }
@@ -232,9 +234,10 @@ print("Fleet's current load: \(fleet.totalCurrentLoad()) kg\n")
 for vehicle in fleet.vehicles {
     vehicle.unloadCargo()
 }
-print()
 
 let cargos = [cargo1!, cargo2!, cargo3!]
 fleet.canGo(cargo: cargos, path: 100)
 print()
 fleet.canGo(cargo: cargos, path: 300)
+print()
+fleet.canGo(cargo: cargos, path: 700)
