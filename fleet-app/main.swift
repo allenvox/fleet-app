@@ -68,42 +68,59 @@ class Vehicle {
 class Truck: Vehicle {
     var trailerAttached: Bool
     var trailerCapacity: Int?
+    var trailerCurrentLoad: Int = 0
+    var trailerAllowedCargoTypes: [CargoType]?
 
-    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, trailerAttached: Bool, trailerCapacity: Int?, allowedCargoTypes: [CargoType]? = nil) {
+    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, trailerAttached: Bool, trailerCapacity: Int?, allowedCargoTypes: [CargoType]? = nil, trailerAllowedCargoTypes: [CargoType]? = nil) {
         self.trailerAttached = trailerAttached
         self.trailerCapacity = trailerCapacity
+        self.trailerAllowedCargoTypes = trailerAllowedCargoTypes
         super.init(make: make, model: model, year: year, capacity: capacity, fuelTankCapacity: fuelTankCapacity, allowedCargoTypes: allowedCargoTypes)
     }
     
     override func loadCargo(cargo: Cargo?) -> Bool {
-        guard cargo != nil else {
+        guard let cargo = cargo else {
             print("Failed to load empty cargo on the vehicle")
             return false
         }
         
-        guard (allowedCargoTypes?.contains(cargo!.type) ?? true) else {
-            print("'\(make) \(model)' can not carry '\(cargo!.type.str)' cargo")
-            return false
-        }
-        
-        guard let currentLoad = currentLoad else {
-            self.currentLoad = cargo!.weight
-            print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
+        let isSupportedByTruck = allowedCargoTypes?.contains(cargo.type) ?? true
+        let isSupportedByTrailer = trailerAllowedCargoTypes?.contains(cargo.type) ?? false
+
+        if isSupportedByTruck && (currentLoad! + cargo.weight <= capacity) {
+            self.currentLoad! += cargo.weight
+            print("Cargo loaded to truck '\(make) \(model)': '\(cargo.description)'")
             return true
         }
-        
-        let totalCapacity = capacity + (trailerAttached ? trailerCapacity ?? 0 : 0)
-        if currentLoad + cargo!.weight > totalCapacity {
-            print("'\(make) \(model)' with trailer can not handle weight of '\(cargo!.description)'")
-            return false
+
+        if trailerAttached && isSupportedByTrailer {
+            if trailerCurrentLoad + cargo.weight <= trailerCapacity! {
+                trailerCurrentLoad += cargo.weight
+                print("Cargo loaded to trailer of '\(make) \(model)': '\(cargo.description)'")
+                return true
+            } else {
+                print("Trailer of '\(make) \(model)' can't handle the weight of '\(cargo.description)'")
+                return false
+            }
         }
         
-        self.currentLoad! += cargo!.weight
-        print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
-        return true
+        print("'\(make) \(model)' can't carry cargo type '\(cargo.type.str)'")
+        return false
+    }
+    
+    override func unloadCargo() {
+        super.unloadCargo()
+        trailerCurrentLoad = 0
+    }
+    
+    func totalCapacity() -> Int {
+        return capacity + (trailerCapacity ?? 0)
+    }
+
+    func totalCurrentLoad() -> Int {
+        return currentLoad! + trailerCurrentLoad
     }
 }
-
 
 enum CargoType: Equatable {
     case fragile(inHardcase: Bool)
@@ -140,7 +157,15 @@ class Fleet {
     
     func addVehicle(_ vehicle: Vehicle) {
         vehicles.append(vehicle)
-        print("'\(vehicle.make) \(vehicle.model)' that can carry '\(vehicle.allowedCargoTypes?.map { $0.str }.joined(separator: ", ") ?? "all")' cargos with total weight of \(vehicle.capacity) kg added to fleet")
+        var vehicleInfo = "'\(vehicle.make) \(vehicle.model)' that can carry '\(vehicle.allowedCargoTypes?.map { $0.str }.joined(separator: ", ") ?? "all")' cargos with total weight of \(vehicle.capacity) kg"
+        
+        if let truck = vehicle as? Truck, truck.trailerAttached {
+            let trailerCargoTypes = truck.trailerAllowedCargoTypes?.map { $0.str }.joined(separator: ", ") ?? "all"
+            vehicleInfo += " and has a trailer with additional capacity of \(truck.trailerCapacity ?? 0) kg for '\(trailerCargoTypes)' cargo types"
+        }
+        
+        print("\(vehicleInfo) added to fleet")
+        vehicles.append(vehicle)
     }
     
     func totalCapacity() -> Int {
@@ -220,7 +245,8 @@ let truck1 = Truck(
     fuelTankCapacity: 200,
     trailerAttached: true,
     trailerCapacity: 2000,
-    allowedCargoTypes: [.fragile(inHardcase: true), .perishable(temperature: -10)]
+    allowedCargoTypes: [.fragile(inHardcase: true), .perishable(temperature: -10)],
+    trailerAllowedCargoTypes: [.bulk(inBricks: false)]
 )
 
 let truck2 = Truck(
