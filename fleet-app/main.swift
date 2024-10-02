@@ -141,14 +141,23 @@ class Fleet {
         return vehicles.reduce(0) { $0 + ($1.currentLoad ?? 0) }
     }
     
+    func info() {
+        print("Fleet's weight capacity: \(fleet.totalCapacity()) kg")
+        print("Fleet's current load: \(fleet.totalCurrentLoad()) kg")
+    }
+    
     func canGo(cargo: [Cargo], path: Int) -> Bool {
         print("Can the fleet carry cargos on \(path) km route?")
+        
+        var loadedVehicles: [Vehicle] = []
+        
         for load in cargo {
             var isCargoLoaded = false
             
             for vehicle in vehicles {
                 if vehicle.allowedCargoTypes.contains(load.type) {
                     if vehicle.loadCargo(cargo: load) {
+                        loadedVehicles.append(vehicle)
                         isCargoLoaded = true
                         break
                     }
@@ -161,7 +170,7 @@ class Fleet {
             }
         }
         
-        for vehicle in vehicles {
+        for vehicle in loadedVehicles {
             if !vehicle.canGo(path: path) {
                 print("'\(vehicle.make) \(vehicle.model)' can not ride \(path) km route due to fuel amounts")
                 return false
@@ -228,8 +237,9 @@ if let cargo1 = cargo1, let cargo2 = cargo2, let cargo3 = cargo3 {
     truck2.loadCargo(cargo: cargo3)   // OK bulk
 }
 
-print("\nFleet's weight capacity: \(fleet.totalCapacity()) kg")
-print("Fleet's current load: \(fleet.totalCurrentLoad()) kg\n")
+print()
+fleet.info()
+print()
 
 for vehicle in fleet.vehicles {
     vehicle.unloadCargo()
