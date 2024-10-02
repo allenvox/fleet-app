@@ -14,9 +14,9 @@ class Vehicle {
     let capacity: Int
     var currentLoad: Int? = 0
     let fuelTankCapacity: Double
-    var allowedCargoTypes: [CargoType]
+    var allowedCargoTypes: [CargoType]?
 
-    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, allowedCargoTypes: [CargoType]) {
+    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, allowedCargoTypes: [CargoType]? = nil) {
         self.make = make
         self.model = model
         self.year = year
@@ -25,27 +25,32 @@ class Vehicle {
         self.allowedCargoTypes = allowedCargoTypes
     }
 
-    func loadCargo(cargo: Cargo) -> Bool {
-        let isSupportedCargo = allowedCargoTypes.contains(cargo.type)
+    func loadCargo(cargo: Cargo?) -> Bool {
+        guard cargo != nil else {
+            print("Failed to load empty cargo on the vehicle")
+            return false
+        }
         
-        if !isSupportedCargo {
-            print("'\(make) \(model)' can not handle '\(cargo.type.str)' cargo")
+        let isSupportedCargo = allowedCargoTypes?.contains(cargo!.type)
+        
+        if !(isSupportedCargo ?? true) { // if allowedCargoTypes is nil, all types supported
+            print("'\(make) \(model)' can not handle '\(cargo!.type.str)' cargo")
             return false
         }
         
         guard let currentLoad = currentLoad else {
-            self.currentLoad = cargo.weight
-            print("Cargo loaded to '\(make) \(model)': '\(cargo.description)'")
+            self.currentLoad = cargo!.weight
+            print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
             return true
         }
         
-        if currentLoad + cargo.weight > capacity {
-            print("'\(make) \(model)' can not handle this amount of weight")
+        if currentLoad + cargo!.weight > capacity {
+            print("'\(make) \(model)' can not handle weight of '\(cargo!.description)'")
             return false
         }
         
-        self.currentLoad! += cargo.weight
-        print("Cargo loaded to '\(make) \(model)': '\(cargo.description)'")
+        self.currentLoad! += cargo!.weight
+        print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
         return true
     }
 
@@ -64,32 +69,37 @@ class Truck: Vehicle {
     var trailerAttached: Bool
     var trailerCapacity: Int?
 
-    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, trailerAttached: Bool, trailerCapacity: Int?, allowedCargoTypes: [CargoType]) {
+    init(make: String, model: String, year: Int, capacity: Int, fuelTankCapacity: Double, trailerAttached: Bool, trailerCapacity: Int?, allowedCargoTypes: [CargoType]? = nil) {
         self.trailerAttached = trailerAttached
         self.trailerCapacity = trailerCapacity
         super.init(make: make, model: model, year: year, capacity: capacity, fuelTankCapacity: fuelTankCapacity, allowedCargoTypes: allowedCargoTypes)
     }
     
-    override func loadCargo(cargo: Cargo) -> Bool {
-        guard allowedCargoTypes.contains(cargo.type) else {
-            print("'\(make) \(model)' can not carry '\(cargo.type.str)' cargo")
+    override func loadCargo(cargo: Cargo?) -> Bool {
+        guard cargo != nil else {
+            print("Failed to load empty cargo on the vehicle")
+            return false
+        }
+        
+        guard (allowedCargoTypes?.contains(cargo!.type) ?? true) else {
+            print("'\(make) \(model)' can not carry '\(cargo!.type.str)' cargo")
             return false
         }
         
         guard let currentLoad = currentLoad else {
-            self.currentLoad = cargo.weight
-            print("Cargo loaded to '\(make) \(model)': '\(cargo.description)'")
+            self.currentLoad = cargo!.weight
+            print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
             return true
         }
         
         let totalCapacity = capacity + (trailerAttached ? trailerCapacity ?? 0 : 0)
-        if currentLoad + cargo.weight > totalCapacity {
-            print("'\(make) \(model)' with trailer can not handle this amount of weight")
+        if currentLoad + cargo!.weight > totalCapacity {
+            print("'\(make) \(model)' with trailer can not handle weight of '\(cargo!.description)'")
             return false
         }
         
-        self.currentLoad! += cargo.weight
-        print("Cargo loaded to '\(make) \(model)': '\(cargo.description)'")
+        self.currentLoad! += cargo!.weight
+        print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
         return true
     }
 }
@@ -130,7 +140,7 @@ class Fleet {
     
     func addVehicle(_ vehicle: Vehicle) {
         vehicles.append(vehicle)
-        print("'\(vehicle.make) \(vehicle.model)' that can carry '\(vehicle.allowedCargoTypes.map { $0.str }.joined(separator: ", "))' cargos with total weight of \(vehicle.capacity) kg added to fleet")
+        print("'\(vehicle.make) \(vehicle.model)' that can carry '\(vehicle.allowedCargoTypes?.map { $0.str }.joined(separator: ", ") ?? "all")' cargos with total weight of \(vehicle.capacity) kg added to fleet")
     }
     
     func totalCapacity() -> Int {
@@ -155,7 +165,7 @@ class Fleet {
             var isCargoLoaded = false
             
             for vehicle in vehicles {
-                if vehicle.allowedCargoTypes.contains(load.type) {
+                if (vehicle.allowedCargoTypes?.contains(load.type) ?? true) {
                     if vehicle.loadCargo(cargo: load) {
                         loadedVehicles.append(vehicle)
                         isCargoLoaded = true
@@ -165,7 +175,7 @@ class Fleet {
             }
             
             if !isCargoLoaded {
-                print("Could not find vehicle to carry '\(load.description)' cargo")
+                print("Could not find vehicle to carry '\(load.description)', '\(load.type.str)' cargo")
                 return false
             }
         }
@@ -194,6 +204,14 @@ let vehicle1 = Vehicle(
     allowedCargoTypes: [.fragile(inHardcase: false), .bulk(inBricks: true)]
 )
 
+let vehicle2 = Vehicle(
+    make: "Skoda",
+    model: "Octavia",
+    year: 2019,
+    capacity: 300,
+    fuelTankCapacity: 60
+)
+
 let truck1 = Truck(
     make: "Volvo",
     model: "FH",
@@ -220,18 +238,21 @@ print("Creating fleet:")
 
 let fleet = Fleet()
 fleet.addVehicle(vehicle1)
+fleet.addVehicle(vehicle2)
 fleet.addVehicle(truck1)
 fleet.addVehicle(truck2)
 
 let cargo1 = Cargo(description: "Musical equipment", weight: 300, type: .fragile(inHardcase: true))
 let cargo2 = Cargo(description: "Medicines", weight: 200, type: .perishable(temperature: -10))
 let cargo3 = Cargo(description: "Sand", weight: 1000, type: .bulk(inBricks: false))
+let cargo4 = Cargo(description: "Cocoa powder", weight: 50, type: .bulk(inBricks: true))
 
 print("\nTrying to load cargos:")
 
-if let cargo1 = cargo1, let cargo2 = cargo2, let cargo3 = cargo3 {
+if let cargo1 = cargo1, let cargo2 = cargo2, let cargo3 = cargo3, let cargo4 = cargo4 {
     vehicle1.loadCargo(cargo: cargo1) // BAD fragile
     vehicle1.loadCargo(cargo: cargo2) // BAD perishable
+    vehicle2.loadCargo(cargo: cargo4) // OK bulk
     truck1.loadCargo(cargo: cargo1)   // OK fragile
     truck1.loadCargo(cargo: cargo2)   // OK perishable
     truck2.loadCargo(cargo: cargo3)   // OK bulk
@@ -245,9 +266,10 @@ for vehicle in fleet.vehicles {
     vehicle.unloadCargo()
 }
 
-let cargos = [cargo1!, cargo2!, cargo3!]
+let cargos = [cargo1!, cargo2!, cargo3!, cargo4!]
 fleet.canGo(cargo: cargos, path: 100)
 print()
 fleet.canGo(cargo: cargos, path: 300)
 print()
+fleet.vehicles.remove(at: 2) // removed 'Toyota Tacoma'
 fleet.canGo(cargo: cargos, path: 700)
