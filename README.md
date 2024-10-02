@@ -19,7 +19,7 @@ A Swift-based system to manage a fleet of vehicles and simulate cargo transporta
 - **Vehicle Management**: Manage a fleet of different types of vehicles (trucks, vans, etc.) with various load capacities.
 - **Cargo Handling**: Support for loading and unloading different types of cargo, including fragile, perishable, and bulk.
 - **Fuel Consumption**: Simulate fuel consumption based on distance and ensure that vehicles can return to refuel if necessary.
-- **Trailer Support**: Some vehicles can attach a trailer for additional cargo capacity.
+- **Trailer Support**: Some trucks can attach a trailer for additional cargo capacity and support additional cargo types.
 - **Automated Cargo Distribution**: Automatically distribute the cargo to available vehicles based on their capacity and cargo compatibility.
 - **Flexible Cargo Type Handling**: Each vehicle has specific cargo types it can carry, and vehicles only accept cargos compatible with their type.
 
@@ -32,7 +32,7 @@ A Swift-based system to manage a fleet of vehicles and simulate cargo transporta
 
 ### Creating Vehicles and Trucks
 
-Create instances of `Vehicle` and `Truck` by specifying their make, model, capacity, fuel tank size, and allowed cargo types:
+Create instances of `Vehicle` and `Truck` by specifying their make, model, capacity, fuel tank size, and allowed cargo types. Trucks may optionally attach trailers to extend their cargo capacity and support additional cargo types:
 
 ```swift
 let vehicle1 = Vehicle(
@@ -58,14 +58,14 @@ let truck1 = Truck(
 
 ### Creating and Loading Cargo
 
-Create cargo and load it into vehicles using the `loadCargo` method:
+Create cargo and load it into vehicles using the `loadCargo` method. Trucks with trailers will take into account both the main and trailer capacities:
 
 ```swift
 let cargo1 = Cargo(description: "Musical equipment", weight: 300, type: .fragile(inHardcase: true))
 let cargo2 = Cargo(description: "Medicines", weight: 200, type: .perishable(temperature: -5))
 
 vehicle1.loadCargo(cargo: cargo1) // Loads fragile cargo
-truck1.loadCargo(cargo: cargo2)   // Loads perishable cargo
+truck1.loadCargo(cargo: cargo2)   // Loads perishable cargo into truck with trailer
 ```
 
 ### Simulating Cargo Distribution and Travel
@@ -83,7 +83,7 @@ fleet.canGo(cargo: cargos, path: path) // Checks if the fleet can carry all carg
 
 The `Fleet` class manages all vehicles in the system:
 
-- **addVehicle(_ vehicle: Vehicle)**: Adds a vehicle to the fleet.
+- **addVehicle(_ vehicle: Vehicle)**: Adds a vehicle to the fleet, and if it's a truck with a trailer, it also notes the additional trailer capacity and supported cargo types.
 - **totalCapacity()**: Returns the total load capacity of all vehicles.
 - **totalCurrentLoad()**: Returns the total current load of all vehicles.
 - **canGo(cargo: [Cargo], path: Int)**: Distributes the cargo across vehicles and checks if the fleet can deliver it for the specified distance.
@@ -109,6 +109,7 @@ Inherits from `Vehicle` and adds trailer support:
 - **Properties**:
   - `trailerAttached`: Indicates if the truck has a trailer.
   - `trailerCapacity`: The trailer’s additional load capacity.
+  - **trailerAllowedCargoTypes**: Cargo types that the trailer can support in addition to the truck's own cargo types.
 
 ### Cargo Class
 
