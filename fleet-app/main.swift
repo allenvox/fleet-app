@@ -294,5 +294,5 @@ fleet.canGo(cargo: cargos, path: 100)
 print()
 fleet.canGo(cargo: cargos, path: 300)
 print()
-fleet.vehicles.remove(at: 2) // removed 'Toyota Tacoma'
+fleet.vehicles.remove(at: 2) // removed 'Volvo FH'
 fleet.canGo(cargo: cargos, path: 700)
