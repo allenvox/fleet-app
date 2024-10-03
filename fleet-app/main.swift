@@ -165,7 +165,6 @@ class Fleet {
         }
         
         print("\(vehicleInfo) added to fleet")
-        vehicles.append(vehicle)
     }
     
     func totalCapacity() -> Int {
