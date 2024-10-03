@@ -189,12 +189,10 @@ class Fleet {
             var isCargoLoaded = false
             
             for vehicle in vehicles {
-                if (vehicle.allowedCargoTypes?.contains(load.type) ?? true) {
-                    if vehicle.loadCargo(cargo: load) {
-                        loadedVehicles.append(vehicle)
-                        isCargoLoaded = true
-                        break
-                    }
+                if vehicle.loadCargo(cargo: load) {
+                    loadedVehicles.append(vehicle)
+                    isCargoLoaded = true
+                    break
                 }
             }
             
