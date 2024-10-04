@@ -12,7 +12,7 @@ class Vehicle {
     let model: String
     let year: Int
     let capacity: Int
-    var currentLoad: Int? = 0
+    var currentLoad: Int = 0
     let fuelTankCapacity: Double
     var allowedCargoTypes: [CargoType]?
 
@@ -25,41 +25,33 @@ class Vehicle {
         self.allowedCargoTypes = allowedCargoTypes
     }
 
-    func loadCargo(cargo: Cargo?) -> Bool {
-        guard cargo != nil else {
+    func loadCargo(_ cargo: Cargo?) -> Bool {
+        guard let cargo = cargo else {
             print("Failed to load empty cargo on the vehicle")
             return false
         }
         
-        let isSupportedCargo = allowedCargoTypes?.contains(cargo!.type)
-        
-        if !(isSupportedCargo ?? true) { // if allowedCargoTypes is nil, all types supported
-            print("'\(make) \(model)' can not handle '\(cargo!.type.str)' cargo")
+        if let allowedTypes = allowedCargoTypes, !allowedTypes.contains(cargo.type) {
+            print("'\(make) \(model)' can not handle '\(cargo.type.str)' cargo")
+            return false
+        }
+
+        if currentLoad + cargo.weight > capacity {
+            print("'\(make) \(model)' cannot handle weight of '\(cargo.description)'")
             return false
         }
         
-        guard let currentLoad = currentLoad else {
-            self.currentLoad = cargo!.weight
-            print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
-            return true
-        }
-        
-        if currentLoad + cargo!.weight > capacity {
-            print("'\(make) \(model)' can not handle weight of '\(cargo!.description)'")
-            return false
-        }
-        
-        self.currentLoad! += cargo!.weight
-        print("Cargo loaded to '\(make) \(model)': '\(cargo!.description)'")
+        currentLoad += cargo.weight
+        print("Cargo loaded to '\(make) \(model)': '\(cargo.description)'")
         return true
     }
 
     func unloadCargo() {
-        self.currentLoad = 0
+        currentLoad = 0
     }
     
     func canGo(path: Int) -> Bool {
-        let kmPerLiter = 14.0 // fuel consumption
+        let kmPerLiter = 14.0
         let maxDistance = Int((fuelTankCapacity / 2) * kmPerLiter)
         return path <= maxDistance
     }
@@ -78,7 +70,7 @@ class Truck: Vehicle {
         super.init(make: make, model: model, year: year, capacity: capacity, fuelTankCapacity: fuelTankCapacity, allowedCargoTypes: allowedCargoTypes)
     }
     
-    override func loadCargo(cargo: Cargo?) -> Bool {
+    override func loadCargo(_ cargo: Cargo?) -> Bool {
         guard let cargo = cargo else {
             print("Failed to load empty cargo on the vehicle")
             return false
@@ -87,21 +79,16 @@ class Truck: Vehicle {
         let isSupportedByTruck = allowedCargoTypes?.contains(cargo.type) ?? true
         let isSupportedByTrailer = trailerAllowedCargoTypes?.contains(cargo.type) ?? false
 
-        if isSupportedByTruck && (currentLoad! + cargo.weight <= capacity) {
-            self.currentLoad! += cargo.weight
+        if isSupportedByTruck, currentLoad + cargo.weight <= capacity {
+            currentLoad += cargo.weight
             print("Cargo loaded to truck '\(make) \(model)': '\(cargo.description)'")
             return true
         }
 
-        if trailerAttached && isSupportedByTrailer {
-            if trailerCurrentLoad + cargo.weight <= trailerCapacity! {
-                trailerCurrentLoad += cargo.weight
-                print("Cargo loaded to trailer of '\(make) \(model)': '\(cargo.description)'")
-                return true
-            } else {
-                print("Trailer of '\(make) \(model)' can't handle the weight of '\(cargo.description)'")
-                return false
-            }
+        if trailerAttached, isSupportedByTrailer, let trailerCapacity = trailerCapacity, trailerCurrentLoad + cargo.weight <= trailerCapacity {
+            trailerCurrentLoad += cargo.weight
+            print("Cargo loaded to trailer of '\(make) \(model)': '\(cargo.description)'")
+            return true
         }
         
         print("'\(make) \(model)' can't carry cargo type '\(cargo.type.str)'")
@@ -118,7 +105,7 @@ class Truck: Vehicle {
     }
 
     func totalCurrentLoad() -> Int {
-        return currentLoad! + trailerCurrentLoad
+        return currentLoad + trailerCurrentLoad
     }
 }
 
@@ -127,10 +114,10 @@ enum CargoType: Equatable {
     case perishable(temperature: Int)
     case bulk(inBricks: Bool)
     
-    var str : String {
+    var str: String {
         switch self {
         case .fragile(let value): return "fragile" + (value ? " in hardcase" : "")
-        case .perishable(let value): return "perishable" + " (\(value) degrees)"
+        case .perishable(let value): return "perishable (\(value) degrees)"
         case .bulk(let value): return "bulk" + (value ? " in bricks" : "")
         }
     }
@@ -142,7 +129,7 @@ struct Cargo {
     let type: CargoType
     
     init?(description: String, weight: Int, type: CargoType) {
-        if weight <= 0 {
+        guard weight > 0 else {
             print("Cargo weight should be greater than 0")
             return nil
         }
@@ -172,12 +159,12 @@ class Fleet {
     }
     
     func totalCurrentLoad() -> Int {
-        return vehicles.reduce(0) { $0 + ($1.currentLoad ?? 0) }
+        return vehicles.reduce(0) { $0 + $1.currentLoad }
     }
     
     func info() {
-        print("Fleet's weight capacity: \(fleet.totalCapacity()) kg")
-        print("Fleet's current load: \(fleet.totalCurrentLoad()) kg")
+        print("Fleet's weight capacity: \(totalCapacity()) kg")
+        print("Fleet's current load: \(totalCurrentLoad()) kg")
     }
     
     func canGo(cargo: [Cargo], path: Int) -> Bool {
@@ -189,7 +176,7 @@ class Fleet {
             var isCargoLoaded = false
             
             for vehicle in vehicles {
-                if vehicle.loadCargo(cargo: load) {
+                if vehicle.loadCargo(load) {
                     loadedVehicles.append(vehicle)
                     isCargoLoaded = true
                     break
@@ -210,9 +197,7 @@ class Fleet {
         }
         
         print("Cargo can be carried on \(path) km route")
-        for vehicle in fleet.vehicles {
-            vehicle.unloadCargo()
-        }
+        vehicles.forEach { $0.unloadCargo() }
         return true
     }
 }
@@ -273,21 +258,19 @@ let cargo4 = Cargo(description: "Cocoa powder", weight: 50, type: .bulk(inBricks
 print("\nTrying to load cargos:")
 
 if let cargo1 = cargo1, let cargo2 = cargo2, let cargo3 = cargo3, let cargo4 = cargo4 {
-    vehicle1.loadCargo(cargo: cargo1) // BAD fragile
-    vehicle1.loadCargo(cargo: cargo2) // BAD perishable
-    vehicle2.loadCargo(cargo: cargo4) // OK bulk
-    truck1.loadCargo(cargo: cargo1)   // OK fragile
-    truck1.loadCargo(cargo: cargo2)   // OK perishable
-    truck2.loadCargo(cargo: cargo3)   // OK bulk
+    vehicle1.loadCargo(cargo1) // BAD fragile
+    vehicle1.loadCargo(cargo2) // BAD perishable
+    vehicle2.loadCargo(cargo4) // OK bulk
+    truck1.loadCargo(cargo1)   // OK fragile
+    truck1.loadCargo(cargo2)   // OK perishable
+    truck2.loadCargo(cargo3)   // OK bulk
 }
 
 print()
 fleet.info()
 print()
 
-for vehicle in fleet.vehicles {
-    vehicle.unloadCargo()
-}
+fleet.vehicles.forEach { $0.unloadCargo() }
 
 let cargos = [cargo1!, cargo2!, cargo3!, cargo4!]
 fleet.canGo(cargo: cargos, path: 100)
